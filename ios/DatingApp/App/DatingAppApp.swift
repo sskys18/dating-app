@@ -5,12 +5,16 @@ struct DatingAppApp: App {
     @StateObject private var appState = AppState()
     @StateObject private var authService = AuthService()
     @StateObject private var deepLinkHandler = DeepLinkHandler.shared
+    @StateObject private var subscriptionService = SubscriptionService()
+    @StateObject private var entitlementService = EntitlementService()
 
     var body: some Scene {
         WindowGroup {
             RootRouter()
                 .environmentObject(appState)
                 .environmentObject(authService)
+                .environmentObject(subscriptionService)
+                .environmentObject(entitlementService)
                 .onOpenURL { url in
                     deepLinkHandler.handle(url: url)
                 }
@@ -27,6 +31,8 @@ struct DatingAppApp: App {
                 .task {
                     await authService.checkExistingSession()
                     appState.isAuthenticated = authService.isAuthenticated
+                    entitlementService.loadCached()
+                    subscriptionService.listenForTransactionUpdates()
                     appState.resolveRoute()
                 }
         }

@@ -10,6 +10,9 @@ import { ChatModule } from './modules/chat/chat.module';
 import { PreviewModule } from './modules/preview/preview.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { HandoffModule } from './modules/handoff/handoff.module';
+import { PhotoModule } from './modules/photo/photo.module';
+import { ProfileModule } from './modules/profile/profile.module';
+import { SubscriptionModule } from './modules/subscription/subscription.module';
 
 @Module({
   imports: [
@@ -24,6 +27,9 @@ import { HandoffModule } from './modules/handoff/handoff.module';
     PreviewModule,
     AuthModule,
     HandoffModule,
+    PhotoModule,
+    ProfileModule,
+    SubscriptionModule,
   ],
 })
 export class AppModule {}

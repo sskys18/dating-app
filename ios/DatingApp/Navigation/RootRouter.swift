@@ -14,7 +14,7 @@ struct RootRouter: View {
             case .handoffClaim(let token):
                 HandoffClaimView(token: token)
             case .profileSetup:
-                ProfileSetupPlaceholder()
+                ProfileSetupView()
             case .main:
                 MainTabView()
             }
@@ -43,13 +43,6 @@ struct SplashView: View {
     }
 }
 
-struct ProfileSetupPlaceholder: View {
-    var body: some View {
-        Text("Profile Setup")
-            .font(.title)
-    }
-}
-
 struct MainTabView: View {
     var body: some View {
         TabView {
@@ -61,7 +54,7 @@ struct MainTabView: View {
                 .tabItem {
                     Label("Matches", systemImage: "message")
                 }
-            ProfilePlaceholder()
+            ProfileTabView()
                 .tabItem {
                     Label("Profile", systemImage: "person.circle")
                 }
@@ -84,15 +77,6 @@ struct MatchesPlaceholder: View {
         NavigationStack {
             Text("Matches & Chat")
                 .navigationTitle("Matches")
-        }
-    }
-}
-
-struct ProfilePlaceholder: View {
-    var body: some View {
-        NavigationStack {
-            Text("Profile")
-                .navigationTitle("Profile")
         }
     }
 }

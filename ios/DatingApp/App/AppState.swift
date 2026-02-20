@@ -15,6 +15,7 @@ class AppState: ObservableObject {
     @Published var isAuthenticated = false
     @Published var isProfileComplete = false
     @Published var pendingHandoffToken: String?
+    @Published var userProfile: UserProfile?
 
     func resolveRoute() {
         if isAuthenticated, let token = pendingHandoffToken {

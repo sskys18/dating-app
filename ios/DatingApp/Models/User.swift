@@ -66,3 +66,24 @@ struct Entitlement: Codable {
     let priorityLikes: Bool
     let dailyLikeQuota: Int?
 }
+
+extension Entitlement {
+    static let free = Entitlement(
+        plan: .free, fullFeed: false, unlimitedLikes: false, rewind: false,
+        advancedPrefs: false, likesYou: false, incognito: false, travel: false,
+        priorityLikes: false, dailyLikeQuota: 5
+    )
+}
+
+struct UpdateProfileRequest: Encodable {
+    var nickname: String?
+    var birthDate: String?
+    var gender: String?
+    var bio: String?
+    var introLine: String?
+    var locationLat: Double?
+    var locationLng: Double?
+    var locationLabel: String?
+    var typeVisible: Bool?
+    var axisCVisible: Bool?
+}

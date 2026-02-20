@@ -26,6 +26,7 @@ export type UserProfile = z.infer<typeof UserProfileSchema>;
 
 export const UpdateProfileRequestSchema = z.object({
   nickname: z.string().min(1).max(50).optional(),
+  birthDate: z.string().optional(),
   gender: z.string().max(20).optional(),
   bio: z.string().max(500).optional(),
   introLine: z.string().max(200).optional(),
