@@ -13,6 +13,10 @@ import { HandoffModule } from './modules/handoff/handoff.module';
 import { PhotoModule } from './modules/photo/photo.module';
 import { ProfileModule } from './modules/profile/profile.module';
 import { SubscriptionModule } from './modules/subscription/subscription.module';
+import { BlockModule } from './modules/block/block.module';
+import { FeedModule } from './modules/feed/feed.module';
+import { RealtimeModule } from './modules/realtime/realtime.module';
+import { NotificationModule } from './modules/notification/notification.module';
 
 @Module({
   imports: [
@@ -30,6 +34,10 @@ import { SubscriptionModule } from './modules/subscription/subscription.module';
     PhotoModule,
     ProfileModule,
     SubscriptionModule,
+    BlockModule,
+    FeedModule,
+    RealtimeModule,
+    NotificationModule,
   ],
 })
 export class AppModule {}

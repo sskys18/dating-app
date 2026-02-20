@@ -44,39 +44,24 @@ struct SplashView: View {
 }
 
 struct MainTabView: View {
+    @EnvironmentObject var appState: AppState
+
     var body: some View {
         TabView {
-            FeedPlaceholder()
+            FeedView()
                 .tabItem {
                     Label("Discover", systemImage: "heart.circle")
                 }
-            MatchesPlaceholder()
+            MatchListView()
                 .tabItem {
                     Label("Matches", systemImage: "message")
                 }
+                .badge(appState.totalUnreadMessages)
             ProfileTabView()
                 .tabItem {
                     Label("Profile", systemImage: "person.circle")
                 }
         }
         .tint(.pink)
-    }
-}
-
-struct FeedPlaceholder: View {
-    var body: some View {
-        NavigationStack {
-            Text("Feed")
-                .navigationTitle("Discover")
-        }
-    }
-}
-
-struct MatchesPlaceholder: View {
-    var body: some View {
-        NavigationStack {
-            Text("Matches & Chat")
-                .navigationTitle("Matches")
-        }
     }
 }

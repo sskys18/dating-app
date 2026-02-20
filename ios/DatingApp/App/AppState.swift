@@ -16,6 +16,8 @@ class AppState: ObservableObject {
     @Published var isProfileComplete = false
     @Published var pendingHandoffToken: String?
     @Published var userProfile: UserProfile?
+    @Published var unreadMatchCount: Int = 0
+    @Published var totalUnreadMessages: Int = 0
 
     func resolveRoute() {
         if isAuthenticated, let token = pendingHandoffToken {
