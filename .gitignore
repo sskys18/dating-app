@@ -1,0 +1,56 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+.next/
+.turbo/
+out/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Prisma
+packages/db/generated/
+packages/db/prisma/*.db
+packages/db/prisma/migrations/
+
+# iOS
+ios/DatingApp.xcodeproj/xcuserdata/
+ios/DatingApp.xcodeproj/project.xcworkspace/xcuserdata/
+ios/*.xcuserstate
+ios/build/
+ios/DerivedData/
+ios/Pods/
+
+# Testing
+coverage/
+
+# Terraform
+infra/.terraform/
+infra/*.tfstate
+infra/*.tfstate.backup
+infra/*.tfvars
+
+# Misc
+*.log
+*.tsbuildinfo

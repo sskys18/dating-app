@@ -1,0 +1,53 @@
+{
+  "landing": {
+    "title": "Discover Your Dating Personality",
+    "subtitle": "Take a quick 12-question quiz to uncover your relationship style, get personalized dating insights, and preview your top matches — all free.",
+    "cta": "Start the Quiz",
+    "ageGate": "I confirm that I am 18 years or older.",
+    "terms": "By continuing, you agree to our Terms of Service and Privacy Policy."
+  },
+  "quiz": {
+    "title": "Your Dating Quiz",
+    "progress": "Question {{current}} of {{total}}",
+    "next": "Next",
+    "submit": "See My Results",
+    "optionA": "A",
+    "optionB": "B"
+  },
+  "result": {
+    "title": "Your Type: {{type}}",
+    "axisBreakdown": "Your Axes",
+    "disclaimer1": "Research-inspired preferences — not a diagnosis.",
+    "disclaimer2": "These results describe tendencies, not rules. You can always change them.",
+    "disclaimer3": "Share what you want: you control what's visible on your profile.",
+    "cta": "Chat with Your Persona Guide"
+  },
+  "chat": {
+    "title": "Persona Chat",
+    "placeholder": "Type your response...",
+    "send": "Send",
+    "turnsLeft": "{{count}} turns remaining",
+    "complete": "View Your Results"
+  },
+  "summary": {
+    "title": "Your Dating Profile Draft",
+    "profileDraft": "Profile Draft",
+    "matchingCriteria": "Matching Criteria",
+    "messageStarters": "Conversation Starters",
+    "cta": "See Your Top Matches"
+  },
+  "preview": {
+    "title": "Your Top 3 Matches",
+    "compatibility": "{{score}}% Compatible",
+    "cta": "Unlock Full Feed"
+  },
+  "paywall": {
+    "title": "Choose Your Plan",
+    "free": "Free",
+    "plus": "Plus",
+    "premium": "Premium",
+    "getApp": "Get the App",
+    "monthly": "/month",
+    "yearly": "/year"
+  }
+}

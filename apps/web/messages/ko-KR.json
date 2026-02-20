@@ -1,0 +1,53 @@
+{
+  "landing": {
+    "title": "나만의 연애 성향을 발견하세요",
+    "subtitle": "12가지 질문 퀴즈로 연애 스타일을 알아보고, 맞춤 데이팅 인사이트를 받고, 상위 매치를 미리 확인하세요 — 모두 무료.",
+    "cta": "퀴즈 시작하기",
+    "ageGate": "만 18세 이상임을 확인합니다.",
+    "terms": "계속하면 이용약관 및 개인정보처리방침에 동의하는 것입니다."
+  },
+  "quiz": {
+    "title": "데이팅 퀴즈",
+    "progress": "질문 {{current}} / {{total}}",
+    "next": "다음",
+    "submit": "결과 확인하기",
+    "optionA": "A",
+    "optionB": "B"
+  },
+  "result": {
+    "title": "당신의 유형: {{type}}",
+    "axisBreakdown": "축 분석",
+    "disclaimer1": "연구 기반 성향 분석이며, 진단이 아닙니다.",
+    "disclaimer2": "이 결과는 경향을 설명할 뿐, 규칙이 아닙니다. 언제든 바꿀 수 있습니다.",
+    "disclaimer3": "공유할 내용을 직접 선택하세요: 프로필에서 무엇을 보여줄지 당신이 결정합니다.",
+    "cta": "페르소나 가이드와 채팅하기"
+  },
+  "chat": {
+    "title": "페르소나 채팅",
+    "placeholder": "답변을 입력하세요...",
+    "send": "보내기",
+    "turnsLeft": "남은 대화 {{count}}회",
+    "complete": "결과 확인하기"
+  },
+  "summary": {
+    "title": "데이팅 프로필 초안",
+    "profileDraft": "프로필 초안",
+    "matchingCriteria": "매칭 기준",
+    "messageStarters": "대화 시작 문구",
+    "cta": "상위 매치 확인하기"
+  },
+  "preview": {
+    "title": "상위 3명의 매치",
+    "compatibility": "{{score}}% 호환",
+    "cta": "전체 피드 잠금 해제"
+  },
+  "paywall": {
+    "title": "플랜 선택",
+    "free": "무료",
+    "plus": "플러스",
+    "premium": "프리미엄",
+    "getApp": "앱 다운로드",
+    "monthly": "/월",
+    "yearly": "/년"
+  }
+}

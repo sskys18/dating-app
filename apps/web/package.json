@@ -1,0 +1,33 @@
+{
+  "name": "@dating-app/web",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "next dev --port 3000",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "^15.1.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "next-intl": "^3.25.3",
+    "@tanstack/react-query": "^5.62.8",
+    "zod": "^3.24.1",
+    "@dating-app/types": "workspace:*",
+    "clsx": "^2.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "typescript": "^5.7.2",
+    "tailwindcss": "^4.0.0",
+    "@tailwindcss/postcss": "^4.0.0",
+    "postcss": "^8.4.49",
+    "@dating-app/typescript-config": "workspace:*",
+    "@dating-app/eslint-config": "workspace:*"
+  }
+}
