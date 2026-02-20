@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { RedisService } from '../redis/redis.service';
-import { FeedCard } from '@dating-app/types';
+import type { PrismaService } from '../prisma/prisma.service';
+import type { RedisService } from '../redis/redis.service';
+import type { FeedCard } from '@dating-app/types';
 import { randomUUID } from 'crypto';
 
 const FAKE_PROFILES = [

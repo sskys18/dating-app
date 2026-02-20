@@ -27,6 +27,7 @@ actor APIClient {
     private let session: URLSession
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
+    private var tokenRefreshHandler: (() async -> Bool)?
 
     private init() {
         #if DEBUG
@@ -46,6 +47,10 @@ actor APIClient {
         self.encoder = JSONEncoder()
         self.encoder.dateEncodingStrategy = .iso8601
         self.encoder.keyEncodingStrategy = .convertToSnakeCase
+    }
+
+    func setTokenRefreshHandler(_ handler: @escaping () async -> Bool) {
+        tokenRefreshHandler = handler
     }
 
     func request<T: Decodable>(
@@ -75,6 +80,26 @@ actor APIClient {
 
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw APIError.networkError(URLError(.badServerResponse))
+            }
+
+            if httpResponse.statusCode == 401, authenticated, let handler = tokenRefreshHandler {
+                let refreshed = await handler()
+                if refreshed {
+                    // Retry with new token
+                    var retryRequest = request
+                    if let newToken = await KeychainService.shared.getAccessToken() {
+                        retryRequest.setValue("Bearer \(newToken)", forHTTPHeaderField: "Authorization")
+                    }
+                    let (retryData, retryResponse) = try await session.data(for: retryRequest)
+                    guard let retryHttpResponse = retryResponse as? HTTPURLResponse else {
+                        throw APIError.networkError(URLError(.badServerResponse))
+                    }
+                    guard (200...299).contains(retryHttpResponse.statusCode) else {
+                        let message = String(data: retryData, encoding: .utf8) ?? "Unknown error"
+                        throw APIError.httpError(statusCode: retryHttpResponse.statusCode, message: message)
+                    }
+                    return try decoder.decode(T.self, from: retryData)
+                }
             }
 
             guard (200...299).contains(httpResponse.statusCode) else {

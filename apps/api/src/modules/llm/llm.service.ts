@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import type { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
-import { ZodSchema } from 'zod';
+import type { ZodSchema } from 'zod';
 
 const DEFAULT_MODEL = 'gpt-4o-mini';
 

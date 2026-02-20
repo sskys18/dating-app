@@ -41,6 +41,11 @@ struct HandoffClaimView: View {
             }
             struct ClaimResponse: Decodable {
                 let success: Bool
+                let transferred: TransferredData
+            }
+            struct TransferredData: Decodable {
+                let quizResponse: Bool
+                let chatSession: Bool
             }
             let _: ClaimResponse = try await APIClient.shared.post(
                 path: "/handoff/claim",

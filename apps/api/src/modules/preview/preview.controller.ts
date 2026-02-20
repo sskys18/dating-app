@@ -1,7 +1,7 @@
 import { Controller, Get, Req, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
-import { Request } from 'express';
-import { PreviewService } from './preview.service';
+import type { Request } from 'express';
+import type { PreviewService } from './preview.service';
 
 @ApiTags('preview')
 @Controller('preview')

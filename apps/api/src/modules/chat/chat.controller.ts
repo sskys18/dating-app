@@ -7,8 +7,8 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
-import { Request } from 'express';
-import { ChatService } from './chat.service';
+import type { Request } from 'express';
+import type { ChatService } from './chat.service';
 
 @ApiTags('chat')
 @Controller('chat')

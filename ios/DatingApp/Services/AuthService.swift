@@ -9,6 +9,7 @@ class AuthService: ObservableObject {
 
     struct AuthResponse: Decodable {
         let accessToken: String
+        let refreshToken: String?
         let expiresIn: Int
         let user: UserInfo
     }
@@ -52,9 +53,50 @@ class AuthService: ObservableObject {
     // MARK: - Logout
 
     func logout() async {
+        if let refreshToken = await KeychainService.shared.getRefreshToken() {
+            let body = ["refreshToken": refreshToken]
+            let _: EmptyResponse? = try? await APIClient.shared.post(
+                path: "/auth/logout",
+                body: body
+            )
+        }
         await KeychainService.shared.clearAll()
         isAuthenticated = false
     }
+
+    // MARK: - Session Management
+
+    func checkExistingSession() async {
+        if let _ = await KeychainService.shared.getAccessToken() {
+            isAuthenticated = true
+        } else if let _ = await KeychainService.shared.getRefreshToken() {
+            let refreshed = await refreshTokenIfNeeded()
+            isAuthenticated = refreshed
+        }
+    }
+
+    func refreshTokenIfNeeded() async -> Bool {
+        guard let refreshToken = await KeychainService.shared.getRefreshToken() else {
+            return false
+        }
+        do {
+            let body = ["refreshToken": refreshToken]
+            let response: AuthResponse = try await APIClient.shared.post(
+                path: "/auth/refresh?platform=ios",
+                body: body,
+                authenticated: false
+            )
+            await KeychainService.shared.setAccessToken(response.accessToken)
+            if let newRefreshToken = response.refreshToken {
+                await KeychainService.shared.setRefreshToken(newRefreshToken)
+            }
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    private struct EmptyResponse: Decodable {}
 
     // MARK: - Private
 
@@ -65,12 +107,15 @@ class AuthService: ObservableObject {
         do {
             let body = ["idToken": idToken, "provider": provider]
             let response: AuthResponse = try await APIClient.shared.post(
-                path: "/auth/\(provider)",
+                path: "/auth/\(provider)?platform=ios",
                 body: body,
                 authenticated: false
             )
 
             await KeychainService.shared.setAccessToken(response.accessToken)
+            if let refreshToken = response.refreshToken {
+                await KeychainService.shared.setRefreshToken(refreshToken)
+            }
             isAuthenticated = true
         } catch {
             self.error = error.localizedDescription

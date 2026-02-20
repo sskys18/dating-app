@@ -8,6 +8,8 @@ import { QuizModule } from './modules/quiz/quiz.module';
 import { LlmModule } from './modules/llm/llm.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { PreviewModule } from './modules/preview/preview.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { HandoffModule } from './modules/handoff/handoff.module';
 
 @Module({
   imports: [
@@ -20,6 +22,8 @@ import { PreviewModule } from './modules/preview/preview.module';
     QuizModule,
     ChatModule,
     PreviewModule,
+    AuthModule,
+    HandoffModule,
   ],
 })
 export class AppModule {}

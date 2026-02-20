@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, Req, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
-import { Request } from 'express';
-import { QuizService } from './quiz.service';
+import type { Request } from 'express';
+import type { QuizService } from './quiz.service';
 
 @ApiTags('quiz')
 @Controller('quiz')

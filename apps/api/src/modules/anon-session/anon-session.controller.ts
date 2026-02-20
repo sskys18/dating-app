@@ -1,7 +1,7 @@
 import { Controller, Post, Get, Param, Req, Res, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
-import { Request, Response } from 'express';
-import { AnonSessionService } from './anon-session.service';
+import type { Request, Response } from 'express';
+import type { AnonSessionService } from './anon-session.service';
 
 @ApiTags('anon-session')
 @Controller('anon-sessions')
