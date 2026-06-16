@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import type { FeedCard } from '@dating-app/types';
@@ -77,12 +78,23 @@ export class PreviewService {
     // 6. Build FeedCards (respect each candidate's typeVisible, like the feed).
     const matches: FeedCard[] = top3.map((s) => {
       const c = s.candidate;
+      // Privacy: this preview is served to UNAUTHENTICATED anonymous visitors
+      // (anon quiz-session cookie, no JWT), so it must not leak real users' PII
+      // or allow enumeration/scraping. Return an opaque per-session id (not the
+      // real userId), no raw CDN photo URL, and no free-text intro. The full
+      // profile (real id, photo, intro) is only exposed in the authenticated
+      // feed after sign-up. Teaser keeps nickname + age + city + score + type.
+      const opaqueId = crypto
+        .createHash('sha256')
+        .update(`${c.id}:${sessionId}`)
+        .digest('hex')
+        .slice(0, 16);
       return {
-        userId: c.id,
+        userId: opaqueId,
         nickname: c.nickname ?? '',
         age: c.birthDate ? calculateAge(c.birthDate) : 0,
-        introLine: c.introLine,
-        photoUrl: c.photos[0]?.url ?? '',
+        introLine: null,
+        photoUrl: '',
         locationLabel: c.locationLabel,
         compatibilityScore: s.score,
         typeLabel:
