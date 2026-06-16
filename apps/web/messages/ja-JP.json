@@ -1,0 +1,72 @@
+{
+  "landing": {
+    "title": "あなたはどう恋する人？",
+    "subtitle": "12問のかんたんな質問であなたの恋愛タイプを見つけて、あたたかなパーソナル分析と相性のいい相手のプレビューを — すべて無料で。",
+    "cta": "クイズを始める",
+    "ageGate": "18歳以上です。",
+    "terms": "続行すると、利用規約とプライバシーポリシーに同意したことになります。"
+  },
+  "quiz": {
+    "title": "恋愛クイズ",
+    "progress": "質問 {current} / {total}",
+    "next": "次へ",
+    "submit": "結果を見る",
+    "optionA": "A",
+    "optionB": "B"
+  },
+  "result": {
+    "title": "あなたは{type}",
+    "axisBreakdown": "あなたの軸",
+    "disclaimer1": "研究に基づく傾向であり、診断ではありません。",
+    "disclaimer2": "この結果は傾向を示すものであり、決まりではありません。いつでも変更できます。",
+    "disclaimer3": "共有する内容はあなたが選べます。プロフィールに何を表示するかはあなた次第です。",
+    "cta": "ペルソナガイドと話す"
+  },
+  "chat": {
+    "title": "ペルソナチャット",
+    "placeholder": "返信を入力してください...",
+    "send": "送信",
+    "turnsLeft": "あと{count}問",
+    "complete": "結果を見る"
+  },
+  "summary": {
+    "title": "プロフィール下書き",
+    "profileDraft": "プロフィール下書き",
+    "matchingCriteria": "あなたが探している人",
+    "messageStarters": "会話のきっかけ",
+    "cta": "トップマッチを見る"
+  },
+  "preview": {
+    "title": "あなたのトップ3マッチ",
+    "compatibility": "{score}% マッチ",
+    "cta": "全フィードを見る"
+  },
+  "paywall": {
+    "title": "プランを選ぶ",
+    "recommended": "人気",
+    "free": "無料",
+    "plus": "プラス",
+    "premium": "プレミアム",
+    "getApp": "アプリを入手",
+    "monthly": "/月",
+    "yearly": "/年",
+    "features": {
+      "dailyProfiles": "1日のプロフィール",
+      "dailyLikes": "1日のいいね",
+      "rewind": "巻き戻し",
+      "likesYou": "いいねした相手を見る",
+      "incognito": "シークレットモード",
+      "priorityLikes": "優先いいね"
+    },
+    "values": {
+      "unlimited": "無制限",
+      "perDay": "1日{count}件"
+    }
+  },
+  "language": {
+    "label": "言語",
+    "ko-KR": "한국어",
+    "en-US": "English",
+    "ja-JP": "日本語"
+  }
+}

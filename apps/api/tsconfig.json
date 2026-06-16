@@ -4,6 +4,7 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "baseUrl": "./",
+    "ignoreDeprecations": "5.0",
     "declaration": false,
     "declarationMap": false,
     "paths": {

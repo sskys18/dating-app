@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import type { Request } from 'express';
-import type { ChatService } from './chat.service';
+import { ChatService } from './chat.service';
 
 @ApiTags('chat')
 @Controller('chat')

@@ -5,9 +5,9 @@ import {
   ConflictException,
   Logger,
 } from '@nestjs/common';
-import type { ConfigService } from '@nestjs/config';
+import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
-import type { PrismaService } from '@/modules/prisma/prisma.service';
+import { PrismaService } from '@/modules/prisma/prisma.service';
 
 interface GenerateTokenResult {
   token: string;
@@ -93,39 +93,44 @@ export class HandoffService {
       throw new BadRequestException('Handoff token has expired');
     }
 
-    // 3. Idempotent: already claimed by same user
-    if (handoffToken.claimedAt && handoffToken.userId === userId) {
-      return {
-        success: true,
-        transferred: { quizResponse: true, chatSession: true },
-      };
-    }
-
-    // 4. Conflict: claimed by a different user
-    if (handoffToken.claimedAt && handoffToken.userId !== userId) {
-      throw new ConflictException('Token has already been claimed by another user');
-    }
-
-    // 5. Claim and transfer data in a transaction
     const sessionId = handoffToken.sessionId;
 
-    const [quizResponse, chatSession] = await Promise.all([
-      this.prisma.quizResponse.findUnique({
-        where: { sessionId },
-        select: { typeId: true },
-      }),
-      this.prisma.chatSession.findUnique({
-        where: { sessionId },
-        select: { profileDraft: true, matchingCriteria: true, messageStarters: true },
-      }),
-    ]);
-
-    await this.prisma.$transaction(async (tx) => {
-      // Mark token as claimed
-      await tx.handoffToken.update({
-        where: { token },
+    // 3. Claim + transfer atomically. The `claimedAt: null` guard makes the
+    //    claim single-use even under concurrent requests (HAND-03): exactly
+    //    one caller wins the conditional update; others see count === 0.
+    return this.prisma.$transaction(async (tx) => {
+      const claim = await tx.handoffToken.updateMany({
+        where: { token, claimedAt: null },
         data: { userId, claimedAt: new Date() },
       });
+
+      if (claim.count === 0) {
+        // Already claimed (previously or by a concurrent winner).
+        const current = await tx.handoffToken.findUnique({
+          where: { token },
+          select: { userId: true },
+        });
+        if (current?.userId === userId) {
+          // Idempotent re-claim by the same user.
+          return {
+            success: true,
+            transferred: { quizResponse: true, chatSession: true },
+          };
+        }
+        throw new ConflictException('Token has already been claimed by another user');
+      }
+
+      // We own the claim — transfer the anonymous outputs to this user.
+      const [quizResponse, chatSession] = await Promise.all([
+        tx.quizResponse.findUnique({
+          where: { sessionId },
+          select: { typeId: true },
+        }),
+        tx.chatSession.findUnique({
+          where: { sessionId },
+          select: { profileDraft: true, matchingCriteria: true, messageStarters: true },
+        }),
+      ]);
 
       // Transfer quiz type to user
       if (quizResponse) {
@@ -137,14 +142,17 @@ export class HandoffService {
 
       // Transfer chat session data to user
       if (chatSession) {
-        const profileDraft = chatSession.profileDraft as Record<string, unknown> | null;
-        if (profileDraft) {
+        // ProfileDraft is { bioVariants[2], promptAnswers[3] } (see ProfileDraftSchema).
+        // Seed the editable bio draft with the first variant; the user fills the
+        // required 1-line intro during profile setup (REQ-PROF-02: drafts, never forced).
+        const profileDraft = chatSession.profileDraft as
+          | { bioVariants?: string[] }
+          | null;
+        const firstBio = profileDraft?.bioVariants?.[0];
+        if (firstBio) {
           await tx.user.update({
             where: { id: userId },
-            data: {
-              bio: (profileDraft.bio as string) || undefined,
-              introLine: (profileDraft.introLine as string) || undefined,
-            },
+            data: { bio: firstBio },
           });
         }
 
@@ -175,14 +183,14 @@ export class HandoffService {
           });
         }
       }
-    });
 
-    return {
-      success: true,
-      transferred: {
-        quizResponse: !!quizResponse,
-        chatSession: !!chatSession,
-      },
-    };
+      return {
+        success: true,
+        transferred: {
+          quizResponse: !!quizResponse,
+          chatSession: !!chatSession,
+        },
+      };
+    });
   }
 }

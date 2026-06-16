@@ -1,60 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import type { PrismaService } from '../prisma/prisma.service';
-import type { RedisService } from '../redis/redis.service';
+import * as crypto from 'crypto';
+import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 import type { FeedCard } from '@dating-app/types';
-import { randomUUID } from 'crypto';
-
-const FAKE_PROFILES = [
-  { nickname: 'Alex', nicknameKo: '\uc9c0\ubbfc' },
-  { nickname: 'Jordan', nicknameKo: '\uc11c\uc5f0' },
-  { nickname: 'Riley', nicknameKo: '\ud558\uc900' },
-  { nickname: 'Morgan', nicknameKo: '\uc608\uc740' },
-  { nickname: 'Casey', nicknameKo: '\ub3c4\uc724' },
-  { nickname: 'Taylor', nicknameKo: '\uc218\ube48' },
-];
-
-function seededRandom(sessionId: string, typeId: number, min: number, max: number): number {
-  const hash = (sessionId.charCodeAt(0) * 31 + typeId * 17) % (max - min + 1);
-  return min + hash;
-}
-
-interface TypeCatalogEntry {
-  id: number;
-  code: string;
-  label: string;
-  labelKo: string;
-  description: string;
-  descriptionKo: string;
-  axisAPole: string;
-  axisBPole: string;
-  axisCPole: string;
-  axisDPole: string;
-}
-
-function computeCompatibility(
-  userType: TypeCatalogEntry,
-  matchType: TypeCatalogEntry,
-  sessionId: string,
-): number {
-  let score = 60;
-
-  // Same closeness pole = good (both want intimacy OR both want space)
-  if (userType.axisAPole === matchType.axisAPole) score += 10;
-
-  // Complementary reassurance (CALM+NEED balances)
-  if (userType.axisBPole !== matchType.axisBPole) score += 10;
-
-  // Same commitment pole
-  if (userType.axisCPole === matchType.axisCPole) score += 8;
-
-  // Complementary conflict style
-  if (userType.axisDPole !== matchType.axisDPole) score += 7;
-
-  // Deterministic variation 0-10
-  score += seededRandom(sessionId, matchType.id, 0, 10);
-
-  return Math.min(score, 95);
-}
+import { scoreCandidate, computeActivitySignal, calculateAge } from '../feed/feed-scoring.util';
 
 @Injectable()
 export class PreviewService {
@@ -63,78 +12,106 @@ export class PreviewService {
     private redis: RedisService,
   ) {}
 
-  async getMatches(sessionId: string): Promise<{ matches: FeedCard[] }> {
-    // 1. Check Redis cache
-    const cacheKey = `preview:${sessionId}`;
+  /**
+   * Top-3 preview (REQ-TOP3-01): uses the SAME real-user scoring engine as the
+   * full feed (scoreCandidate), against real eligible users — no synthetic
+   * TypeCatalog/seededRandom profiles. Free + anonymous (REQ-TOP3-02).
+   */
+  async getMatches(sessionId: string, locale?: string): Promise<{ matches: FeedCard[] }> {
+    // 1. Cache (per-locale: type labels are localized below)
+    const cacheKey = `preview:${sessionId}:${locale ?? 'en-US'}`;
     const cached = await this.redis.get(cacheKey);
     if (cached) {
       return JSON.parse(cached);
     }
 
-    // 2. Load QuizResponse (must be completed)
+    // 2. Completed quiz required
     const quizResponse = await this.prisma.quizResponse.findUnique({
       where: { sessionId },
     });
-
     if (!quizResponse?.completedAt) {
       throw new NotFoundException('No completed quiz found for this session');
     }
 
-    // 3. Load user's TypeCatalog entry
+    // 3. The anonymous quiz-taker's type (axis poles) drives compatibility.
     const userType = await this.prisma.typeCatalog.findUnique({
       where: { id: quizResponse.typeId },
     });
-
     if (!userType) {
       throw new NotFoundException('User type not found');
     }
 
-    // 4. Load AnonSession for locale
-    const session = await this.prisma.anonSession.findUnique({
-      where: { id: sessionId },
+    // 4. Real eligible candidates (same base eligibility as the feed: active,
+    //    complete profile, not incognito, has a computed type).
+    const candidates = await this.prisma.user.findMany({
+      where: {
+        status: 'active',
+        profileComplete: true,
+        incognitoEnabled: false,
+        typeId: { not: null },
+      },
+      include: {
+        type: true,
+        photos: { where: { isPrimary: true }, take: 1 },
+      },
     });
 
-    const locale = session?.locale ?? 'en-US';
+    // 5. Score with the shared engine. Anonymous user has no weights/prefs, so
+    //    alignment + activity drive the ranking.
+    const scored = candidates
+      .filter((c) => c.type !== null)
+      .map((c) => ({
+        candidate: c,
+        score: scoreCandidate({
+          userType,
+          candidateType: c.type!,
+          activitySignal: computeActivitySignal(c.lastActiveAt),
+        }),
+      }))
+      .sort(
+        (a, b) =>
+          b.score - a.score || (a.candidate.id < b.candidate.id ? -1 : 1),
+      );
 
-    // 5. Load all 16 TypeCatalog entries
-    const allTypes = await this.prisma.typeCatalog.findMany();
+    const top3 = scored.slice(0, 3);
 
-    // 6. Filter out user's own type, compute compatibility
-    const candidates = allTypes
-      .filter((t) => t.id !== userType.id)
-      .map((matchType) => ({
-        type: matchType,
-        score: computeCompatibility(userType, matchType, sessionId),
-      }));
+    // 6. Build FeedCards (respect each candidate's typeVisible, like the feed).
+    const matches: FeedCard[] = top3.map((s) => {
+      const c = s.candidate;
+      // Privacy: this preview is served to UNAUTHENTICATED anonymous visitors
+      // (anon quiz-session cookie, no JWT), so it must not leak real users' PII
+      // or allow enumeration/scraping. Return an opaque per-session id (not the
+      // real userId), no raw CDN photo URL, and no free-text intro. The full
+      // profile (real id, photo, intro) is only exposed in the authenticated
+      // feed after sign-up. Teaser keeps nickname + age + city + score + type.
+      const opaqueId = crypto
+        .createHash('sha256')
+        .update(`${c.id}:${sessionId}`)
+        .digest('hex')
+        .slice(0, 16);
+      return {
+        userId: opaqueId,
+        nickname: c.nickname ?? '',
+        age: c.birthDate ? calculateAge(c.birthDate) : 0,
+        introLine: null,
+        photoUrl: '',
+        locationLabel: c.locationLabel,
+        compatibilityScore: s.score,
+        typeLabel:
+          c.typeVisible && c.type
+            ? locale === 'ko-KR'
+              ? c.type.labelKo
+              : locale === 'ja-JP'
+                ? (c.type.labelJa ?? c.type.label)
+                : c.type.label
+            : null,
+      };
+    });
 
-    // 7. Sort by score descending, pick top 3
-    candidates.sort((a, b) => b.score - a.score);
-    const top3 = candidates.slice(0, 3);
-
-    // 8. Build FeedCard objects
-    const matches: FeedCard[] = top3.map((candidate, i) => ({
-      userId: randomUUID(),
-      nickname:
-        locale === 'ko-KR'
-          ? FAKE_PROFILES[i].nicknameKo
-          : FAKE_PROFILES[i].nickname,
-      age: 24 + seededRandom(sessionId, candidate.type.id, 0, 8),
-      introLine:
-        locale === 'ko-KR'
-          ? candidate.type.descriptionKo
-          : candidate.type.description,
-      photoUrl: `/placeholder-${i + 1}.jpg`,
-      locationLabel: null,
-      compatibilityScore: candidate.score,
-      typeLabel:
-        locale === 'ko-KR' ? candidate.type.labelKo : candidate.type.label,
-    }));
-
-    // 9. Cache with 1 hour TTL
+    // 7. Cache 1h
     const result = { matches };
     await this.redis.set(cacheKey, JSON.stringify(result), 'EX', 3600);
 
-    // 10. Return
     return result;
   }
 }

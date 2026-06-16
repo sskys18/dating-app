@@ -4,6 +4,8 @@ import { useTranslations } from 'next-intl';
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { apiFetch } from '@/lib/api';
+import { track } from '@/lib/analytics';
+import { useFlag } from '@/lib/flags';
 
 interface FeedCard {
   userId: string;
@@ -26,13 +28,20 @@ export default function PreviewPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // EXP-02: Top3 preview layout (list vs grid).
+  const top3Layout = useFlag('EXP-02');
+
   useEffect(() => {
     async function loadMatches() {
       try {
         const data = await apiFetch<{ matches: FeedCard[] }>(
-          '/api/preview/matches',
+          `/api/preview/matches?locale=${locale}`,
         );
         setMatches(data.matches);
+        track('preview_top3_view', {
+          count: data.matches.length,
+          'EXP-02': top3Layout,
+        });
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to load matches');
         router.replace(`/${locale}/quiz`);
@@ -42,7 +51,7 @@ export default function PreviewPage() {
       }
     }
     loadMatches();
-  }, [locale, router]);
+  }, [locale, router, top3Layout]);
 
   if (isLoading) {
     return (
@@ -76,8 +85,14 @@ export default function PreviewPage() {
           <h1 className="text-3xl font-bold">{t('title')}</h1>
         </div>
 
-        {/* Match cards */}
-        <div className="mb-8 space-y-4">
+        {/* Match cards — EXP-02: list (stacked) vs grid layout */}
+        <div
+          className={
+            top3Layout === 'grid'
+              ? 'mb-8 grid grid-cols-2 gap-4'
+              : 'mb-8 space-y-4'
+          }
+        >
           {matches.map((match) => (
             <div
               key={match.userId}

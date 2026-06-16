@@ -35,12 +35,15 @@ packages/db/prisma/*.db
 packages/db/prisma/migrations/
 
 # iOS
-ios/DatingApp.xcodeproj/xcuserdata/
-ios/DatingApp.xcodeproj/project.xcworkspace/xcuserdata/
+# The Xcode project is generated from project.yml via XcodeGen — don't commit it.
+ios/DatingApp.xcodeproj/
 ios/*.xcuserstate
 ios/build/
 ios/DerivedData/
 ios/Pods/
+
+# Local demo screenshots
+.demo/
 
 # Testing
 coverage/

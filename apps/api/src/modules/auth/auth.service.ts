@@ -3,14 +3,14 @@ import {
   UnauthorizedException,
   Logger,
 } from '@nestjs/common';
-import type { ConfigService } from '@nestjs/config';
-import type { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import * as crypto from 'crypto';
 import { OAuth2Client } from 'google-auth-library';
 import * as jwt from 'jsonwebtoken';
 import jwksClient from 'jwks-rsa';
-import type { PrismaService } from '@/modules/prisma/prisma.service';
-import type { RedisService } from '@/modules/redis/redis.service';
+import { PrismaService } from '@/modules/prisma/prisma.service';
+import { RedisService } from '@/modules/redis/redis.service';
 
 interface ProviderUserInfo {
   providerUid: string;

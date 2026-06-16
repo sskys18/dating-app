@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { apiFetch } from '@/lib/api';
+import { track } from '@/lib/analytics';
 
 interface QuizResult {
   quizResponseId: string;
@@ -18,10 +19,10 @@ interface QuizResult {
 }
 
 const AXIS_LABELS = {
-  a: { name: 'Avoidance', nameKo: '회피', poles: ['CLOSE', 'DIST'], polesKo: ['친밀', '독립'] },
-  b: { name: 'Anxiety', nameKo: '불안', poles: ['CALM', 'NEED'], polesKo: ['안정', '확인'] },
-  c: { name: 'Orientation', nameKo: '지향', poles: ['COMMIT', 'EXPLORE'], polesKo: ['헌신', '탐색'] },
-  d: { name: 'Conflict', nameKo: '갈등', poles: ['ENGAGE', 'PAUSE'], polesKo: ['직면', '회피'] },
+  a: { name: 'Avoidance', nameKo: '회피', nameJa: '回避', poles: ['CLOSE', 'DIST'], polesKo: ['친밀', '독립'], polesJa: ['親密', '自立'] },
+  b: { name: 'Anxiety', nameKo: '불안', nameJa: '不安', poles: ['CALM', 'NEED'], polesKo: ['안정', '확인'], polesJa: ['安定', '確認'] },
+  c: { name: 'Orientation', nameKo: '지향', nameJa: '指向', poles: ['COMMIT', 'EXPLORE'], polesKo: ['헌신', '탐색'], polesJa: ['誠実', '探求'] },
+  d: { name: 'Conflict', nameKo: '갈등', nameJa: '葛藤', poles: ['ENGAGE', 'PAUSE'], polesKo: ['직면', '회피'], polesJa: ['直面', '保留'] },
 } as const;
 
 export default function ResultPage() {
@@ -30,6 +31,7 @@ export default function ResultPage() {
   const params = useParams();
   const locale = (params.locale as string) || 'en-US';
   const isKo = locale === 'ko-KR';
+  const isJa = locale === 'ja-JP';
 
   const [result, setResult] = useState<QuizResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -50,8 +52,9 @@ export default function ResultPage() {
         }
 
         // Submit with empty to get existing result (idempotent)
-        const data = await apiFetch<QuizResult>(`/api/quiz/result`);
+        const data = await apiFetch<QuizResult>(`/api/quiz/result?locale=${locale}`);
         setResult(data);
+        track('result_preview_view', { typeId: data.typeId, typeCode: data.type.code });
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to load result');
       } finally {
@@ -106,21 +109,23 @@ export default function ResultPage() {
               const score = result.axisScores[axis];
               const pole = result.axisPoles[axis];
               const isSecondPole = pole === info.poles[1];
-              const poleLabel = isKo
-                ? info.polesKo[isSecondPole ? 1 : 0]
-                : info.poles[isSecondPole ? 1 : 0];
+              const poleLabel = isJa
+                ? info.polesJa[isSecondPole ? 1 : 0]
+                : isKo
+                  ? info.polesKo[isSecondPole ? 1 : 0]
+                  : info.poles[isSecondPole ? 1 : 0];
 
               return (
                 <div key={axis} className="space-y-1">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">
-                      {isKo ? info.polesKo[0] : info.poles[0]}
+                      {isJa ? info.polesJa[0] : isKo ? info.polesKo[0] : info.poles[0]}
                     </span>
                     <span className="font-medium text-gray-800">
-                      {isKo ? info.nameKo : info.name}: {poleLabel}
+                      {isJa ? info.nameJa : isKo ? info.nameKo : info.name}: {poleLabel}
                     </span>
                     <span className="text-gray-500">
-                      {isKo ? info.polesKo[1] : info.poles[1]}
+                      {isJa ? info.polesJa[1] : isKo ? info.polesKo[1] : info.poles[1]}
                     </span>
                   </div>
                   <div className="flex gap-1">

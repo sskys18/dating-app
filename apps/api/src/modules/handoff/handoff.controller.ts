@@ -9,7 +9,7 @@ import {
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '@/modules/auth/jwt-auth.guard';
-import type { HandoffService } from './handoff.service';
+import { HandoffService } from './handoff.service';
 
 @ApiTags('handoff')
 @Controller('handoff')

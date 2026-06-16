@@ -1,6 +1,7 @@
 import { defineRouting } from 'next-intl/routing';
 
 export const routing = defineRouting({
-  locales: ['en-US', 'ko-KR'],
-  defaultLocale: 'en-US',
+  // Korean is the primary/default market; English and Japanese are also offered.
+  locales: ['ko-KR', 'en-US', 'ja-JP'],
+  defaultLocale: 'ko-KR',
 });

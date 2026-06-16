@@ -7,6 +7,10 @@ class FeedViewModel: ObservableObject {
     @Published var matchedUser: MatchUser?
     @Published var matchedChatRoomId: String?
 
+    /// IOS-04: number of cards a free user has acted on; used to enforce the Top-3 cap
+    /// (one source of truth — the feed view derives "preview exhausted" from this).
+    @Published var swipesTaken = 0
+
     var dragRotation: Double {
         Double(dragOffset.width / 20)
     }
@@ -23,6 +27,7 @@ class FeedViewModel: ObservableObject {
         let action = dragOffset.width > 0 ? "like" : "pass"
         let response = await feedService.likeOrPass(targetUserId: card.userId, action: action)
         feedService.removeTopCard()
+        swipesTaken += 1
         dragOffset = .zero
 
         if let response = response, response.matched {

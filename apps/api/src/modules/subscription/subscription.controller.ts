@@ -9,8 +9,8 @@ import {
 import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import type { SubscriptionService } from './subscription.service';
-import type { EntitlementService } from './entitlement.service';
+import { SubscriptionService } from './subscription.service';
+import { EntitlementService } from './entitlement.service';
 
 @ApiTags('subscription')
 @Controller('subscription')

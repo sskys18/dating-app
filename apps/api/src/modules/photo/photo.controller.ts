@@ -11,7 +11,7 @@ import {
 import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import type { PhotoService } from './photo.service';
+import { PhotoService } from './photo.service';
 import type { PresignPhotoDto } from './dto/presign-photo.dto';
 
 @ApiTags('photos')

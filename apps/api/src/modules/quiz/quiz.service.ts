@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
-import type { PrismaService } from '../prisma/prisma.service';
-import type { RedisService } from '../redis/redis.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 import { QUIZ_ITEMS } from '@dating-app/types';
 import { Prisma } from '@dating-app/db';
 
@@ -60,7 +60,37 @@ export class QuizService {
     });
   }
 
-  async getResult(sessionId: string) {
+  /**
+   * Pick the locale-appropriate label/description for a type, falling back to
+   * English when a translation is missing (REQ-L10N-02).
+   */
+  private localizeType(
+    type: {
+      code: string;
+      label: string;
+      labelKo: string;
+      labelJa: string | null;
+      description: string;
+      descriptionKo: string;
+      descriptionJa: string | null;
+    } | null,
+    locale?: string,
+  ) {
+    if (!type) return null;
+    if (locale === 'ko-KR') {
+      return { code: type.code, label: type.labelKo, description: type.descriptionKo };
+    }
+    if (locale === 'ja-JP') {
+      return {
+        code: type.code,
+        label: type.labelJa ?? type.label,
+        description: type.descriptionJa ?? type.description,
+      };
+    }
+    return { code: type.code, label: type.label, description: type.description };
+  }
+
+  async getResult(sessionId: string, locale?: string) {
     const quizResponse = await this.prisma.quizResponse.findUnique({
       where: { sessionId },
     });
@@ -78,13 +108,11 @@ export class QuizService {
       typeId: quizResponse.typeId,
       axisScores: quizResponse.axisScores,
       axisPoles: quizResponse.axisPoles,
-      type: type
-        ? { code: type.code, label: type.label, description: type.description }
-        : null,
+      type: this.localizeType(type, locale),
     };
   }
 
-  async submit(sessionId: string, answers: number[]) {
+  async submit(sessionId: string, answers: number[], locale?: string) {
     // Rate limit: 3 submissions per session
     const rateLimitKey = `rate:quiz:${sessionId}`;
     const count = await this.redis.incr(rateLimitKey);
@@ -125,7 +153,7 @@ export class QuizService {
         typeId: existing.typeId,
         axisScores: existing.axisScores,
         axisPoles: existing.axisPoles,
-        type: type ? { code: type.code, label: type.label, description: type.description } : null,
+        type: this.localizeType(type, locale),
       };
     }
 
@@ -172,11 +200,7 @@ export class QuizService {
       typeId,
       axisScores,
       axisPoles,
-      type: {
-        code: type.code,
-        label: type.label,
-        description: type.description,
-      },
+      type: this.localizeType(type, locale),
     };
   }
 

@@ -1,7 +1,7 @@
 import { Controller, Post, Get, Param, Req, Res, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
-import type { AnonSessionService } from './anon-session.service';
+import { AnonSessionService } from './anon-session.service';
 
 @ApiTags('anon-session')
 @Controller('anon-sessions')
@@ -10,7 +10,7 @@ export class AnonSessionController {
 
   @Post()
   @ApiOperation({ summary: 'Create anonymous session' })
-  @ApiQuery({ name: 'locale', required: false, enum: ['en-US', 'ko-KR'] })
+  @ApiQuery({ name: 'locale', required: false, enum: ['ko-KR', 'en-US', 'ja-JP'] })
   async create(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
@@ -18,7 +18,8 @@ export class AnonSessionController {
   ) {
     const ip = req.ip || req.socket.remoteAddress || 'unknown';
     const userAgent = req.headers['user-agent'];
-    const sessionLocale = locale === 'ko-KR' ? 'ko-KR' : 'en-US';
+    const sessionLocale =
+      locale === 'ko-KR' ? 'ko-KR' : locale === 'ja-JP' ? 'ja-JP' : 'en-US';
 
     const session = await this.anonSessionService.create(ip, userAgent, sessionLocale);
 

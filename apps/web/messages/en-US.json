@@ -1,53 +1,72 @@
 {
   "landing": {
-    "title": "Discover Your Dating Personality",
-    "subtitle": "Take a quick 12-question quiz to uncover your relationship style, get personalized dating insights, and preview your top matches — all free.",
-    "cta": "Start the Quiz",
-    "ageGate": "I confirm that I am 18 years or older.",
-    "terms": "By continuing, you agree to our Terms of Service and Privacy Policy."
+    "title": "Discover how you love",
+    "subtitle": "Answer 12 quick questions to find your dating type, get warm, personalized insights, and meet your top matches — all free.",
+    "cta": "Start the quiz",
+    "ageGate": "I'm 18 or older.",
+    "terms": "By continuing, you agree to our Terms and Privacy Policy."
   },
   "quiz": {
-    "title": "Your Dating Quiz",
-    "progress": "Question {{current}} of {{total}}",
+    "title": "Your dating quiz",
+    "progress": "Question {current} of {total}",
     "next": "Next",
-    "submit": "See My Results",
+    "submit": "See my results",
     "optionA": "A",
     "optionB": "B"
   },
   "result": {
-    "title": "Your Type: {{type}}",
-    "axisBreakdown": "Your Axes",
+    "title": "You're {type}",
+    "axisBreakdown": "Your axes",
     "disclaimer1": "Research-inspired preferences — not a diagnosis.",
     "disclaimer2": "These results describe tendencies, not rules. You can always change them.",
     "disclaimer3": "Share what you want: you control what's visible on your profile.",
-    "cta": "Chat with Your Persona Guide"
+    "cta": "Chat with your persona guide"
   },
   "chat": {
-    "title": "Persona Chat",
-    "placeholder": "Type your response...",
+    "title": "Persona chat",
+    "placeholder": "Type your reply...",
     "send": "Send",
-    "turnsLeft": "{{count}} turns remaining",
-    "complete": "View Your Results"
+    "turnsLeft": "{count} to go",
+    "complete": "See your results"
   },
   "summary": {
-    "title": "Your Dating Profile Draft",
-    "profileDraft": "Profile Draft",
-    "matchingCriteria": "Matching Criteria",
-    "messageStarters": "Conversation Starters",
-    "cta": "See Your Top Matches"
+    "title": "Your profile draft",
+    "profileDraft": "Profile draft",
+    "matchingCriteria": "What you're looking for",
+    "messageStarters": "Conversation starters",
+    "cta": "See your top matches"
   },
   "preview": {
-    "title": "Your Top 3 Matches",
-    "compatibility": "{{score}}% Compatible",
-    "cta": "Unlock Full Feed"
+    "title": "Your top 3 matches",
+    "compatibility": "{score}% match",
+    "cta": "Unlock the full feed"
   },
   "paywall": {
-    "title": "Choose Your Plan",
+    "title": "Pick your plan",
+    "recommended": "Most popular",
     "free": "Free",
     "plus": "Plus",
     "premium": "Premium",
-    "getApp": "Get the App",
-    "monthly": "/month",
-    "yearly": "/year"
+    "getApp": "Get the app",
+    "monthly": "/mo",
+    "yearly": "/yr",
+    "features": {
+      "dailyProfiles": "Daily profiles",
+      "dailyLikes": "Daily likes",
+      "rewind": "Rewind",
+      "likesYou": "See who likes you",
+      "incognito": "Incognito mode",
+      "priorityLikes": "Priority likes"
+    },
+    "values": {
+      "unlimited": "Unlimited",
+      "perDay": "{count}/day"
+    }
+  },
+  "language": {
+    "label": "Language",
+    "ko-KR": "한국어",
+    "en-US": "English",
+    "ja-JP": "日本語"
   }
 }

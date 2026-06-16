@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import type { DatingChatService } from './dating-chat.service';
+import { DatingChatService } from './dating-chat.service';
 
 @Controller('messaging')
 @UseGuards(JwtAuthGuard)
