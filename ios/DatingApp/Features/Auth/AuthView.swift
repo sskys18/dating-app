@@ -45,7 +45,10 @@ struct AuthView: View {
                 .frame(height: 50)
 
                 Button {
-                    Task { await authService.signInWithGoogle() }
+                    Task {
+                        await authService.signInWithGoogle()
+                        completeSignInIfAuthenticated()
+                    }
                 } label: {
                     HStack {
                         Image(systemName: "g.circle.fill")
@@ -63,7 +66,10 @@ struct AuthView: View {
                 }
 
                 Button {
-                    Task { await authService.signInWithKakao() }
+                    Task {
+                        await authService.signInWithKakao()
+                        completeSignInIfAuthenticated()
+                    }
                 } label: {
                     HStack {
                         Image(systemName: "message.fill")
@@ -78,6 +84,10 @@ struct AuthView: View {
             }
             .padding(.horizontal, 24)
 
+            if authService.isLoading {
+                ProgressView()
+            }
+
             if let error = authService.error {
                 Text(error)
                     .font(.caption)
@@ -91,5 +101,13 @@ struct AuthView: View {
                 .padding(.horizontal, 32)
                 .padding(.bottom, 16)
         }
+    }
+
+    /// Mirrors the Apple button's success handling: once `AuthService` has stored
+    /// tokens and flipped `isAuthenticated`, advance the app's route.
+    private func completeSignInIfAuthenticated() {
+        guard authService.isAuthenticated else { return }
+        appState.isAuthenticated = true
+        appState.resolveRoute()
     }
 }

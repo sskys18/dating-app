@@ -34,6 +34,8 @@ class EntitlementService: ObservableObject {
 
     var canViewFullFeed: Bool { entitlement.fullFeed }
     var canSeeWhoLikesYou: Bool { entitlement.likesYou }
+    var canUseIncognito: Bool { entitlement.incognito }
+    var canUseTravel: Bool { entitlement.travel }
     var currentDailyLikeQuota: Int? { entitlement.dailyLikeQuota }
 
     private func saveToCache(_ entitlement: Entitlement) {

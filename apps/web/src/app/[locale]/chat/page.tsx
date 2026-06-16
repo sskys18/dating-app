@@ -4,6 +4,8 @@ import { useTranslations } from 'next-intl';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { apiFetch } from '@/lib/api';
+import { track } from '@/lib/analytics';
+import { getFlag } from '@/lib/flags';
 
 interface ChatMessage {
   role: 'assistant' | 'user';
@@ -36,6 +38,7 @@ export default function ChatPage() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const chatCompleteTracked = useRef(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -44,6 +47,15 @@ export default function ChatPage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Fire chat_complete once when the persona chat reaches the completed state
+  // (whether on resume of a finished session or on the final message turn).
+  useEffect(() => {
+    if (status === 'completed' && !chatCompleteTracked.current) {
+      chatCompleteTracked.current = true;
+      track('chat_complete', { turnCount });
+    }
+  }, [status, turnCount]);
 
   useEffect(() => {
     async function initChat() {
@@ -74,6 +86,12 @@ export default function ChatPage() {
           setTurnCount(session.turnCount);
           setMaxTurns(session.maxTurns);
           setStatus(session.status);
+          // EXP-03: chat length (6 vs 10 turns). maxTurns is server-authoritative;
+          // the flag records the requested experiment assignment.
+          track('chat_start', {
+            maxTurns: session.maxTurns,
+            'EXP-03': getFlag('EXP-03'),
+          });
         }
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to start chat');

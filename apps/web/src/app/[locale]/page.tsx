@@ -1,9 +1,10 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/api';
+import { track } from '@/lib/analytics';
 
 export default function LandingPage() {
   const t = useTranslations('landing');
@@ -11,6 +12,10 @@ export default function LandingPage() {
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    track('landing_view');
+  }, []);
 
   const handleStart = async () => {
     if (!ageConfirmed) return;

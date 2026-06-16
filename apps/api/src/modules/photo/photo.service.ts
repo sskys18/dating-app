@@ -6,8 +6,9 @@ import {
 } from '@nestjs/common';
 import { createId } from '@paralleldrive/cuid2';
 import sharp from 'sharp';
-import type { PrismaService } from '../prisma/prisma.service';
-import type { S3Service } from './s3.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { S3Service } from './s3.service';
+import { ModerationService } from './moderation.service';
 
 const MAX_PHOTOS = 6;
 
@@ -26,6 +27,7 @@ export class PhotoService {
   constructor(
     private prisma: PrismaService,
     private s3: S3Service,
+    private moderation: ModerationService,
   ) {}
 
   async presign(userId: string, dto: { filename: string; contentType: string }) {
@@ -66,7 +68,40 @@ export class PhotoService {
     await this.s3.headObject(photo.url);
 
     const original = await this.s3.getObject(photo.url);
+    // sharp() drops all metadata by default (verified empirically — no
+    // .withMetadata() call), so this also strips EXIF/GPS. .rotate() bakes
+    // orientation into pixels and removes the orientation tag.
     const stripped = await sharp(original).rotate().toBuffer();
+
+    // Moderate the exact bytes we would serve before approving.
+    const verdict = await this.moderation.moderate(stripped);
+
+    if (verdict.available && !verdict.ok) {
+      // Rekognition flagged NSFW/violence/etc. — reject and leave the original
+      // in S3 unmodified (no CDN url, no approval).
+      await this.prisma.userPhoto.update({
+        where: { id: photoId },
+        data: { status: 'rejected' },
+      });
+      await this.checkAndUpdateCompletion(userId);
+      throw new BadRequestException(verdict.reason);
+    }
+
+    if (!verdict.available) {
+      // shortcut: moderation backend is unavailable (no AWS creds / API error).
+      // Fail closed — leave the photo 'pending' for a human/admin to approve
+      // rather than auto-approving unscanned content. Ceiling: there is no
+      // admin approval UI/endpoint yet, so unscanned photos sit in 'pending'
+      // indefinitely in that environment. Upgrade path: build an admin
+      // moderation queue + approve endpoint, and/or wire a real moderation
+      // provider so this branch is only hit on transient outages.
+      throw new BadRequestException(
+        'Photo could not be moderated and is awaiting manual review',
+      );
+    }
+
+    // Approved by automated moderation: persist the stripped bytes and mark
+    // the photo approved.
     await this.s3.putObject(photo.url, stripped, 'image/jpeg');
 
     const cdnUrl = this.s3.getCdnUrl(photo.url);

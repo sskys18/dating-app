@@ -15,8 +15,10 @@ model TypeCatalog {
   code        String @unique @db.VarChar(32) // e.g. "CLOSE_CALM_COMMIT_ENGAGE"
   label       String @db.VarChar(100)
   labelKo     String @map("label_ko") @db.VarChar(100)
+  labelJa     String? @map("label_ja") @db.VarChar(100)
   description String @db.Text
   descriptionKo String @map("description_ko") @db.Text
+  descriptionJa String? @map("description_ja") @db.Text
   axisAPole   String @map("axis_a_pole") @db.VarChar(10) // CLOSE | DIST
   axisBPole   String @map("axis_b_pole") @db.VarChar(10) // CALM | NEED
   axisCPole   String @map("axis_c_pole") @db.VarChar(10) // COMMIT | EXPLORE
@@ -130,6 +132,10 @@ model User {
   typeVisible   Boolean  @default(false) @map("type_visible")
   axisCVisible  Boolean  @default(false) @map("axis_c_visible")
   profileComplete Boolean @default(false) @map("profile_complete")
+  incognitoEnabled Boolean @default(false) @map("incognito_enabled")
+  travelLat     Float?   @map("travel_lat")
+  travelLng     Float?   @map("travel_lng")
+  travelActive  Boolean  @default(false) @map("travel_active")
   role          String   @default("user") @db.VarChar(20) // user | admin
   status        String   @default("active") @db.VarChar(20) // active | banned | deleted
   lastActiveAt  DateTime? @map("last_active_at")
@@ -137,6 +143,7 @@ model User {
   updatedAt     DateTime @updatedAt @map("updated_at")
 
   type           TypeCatalog?    @relation(fields: [typeId], references: [id])
+  preferences    UserPreferences?
   authProviders  AuthProvider[]
   photos         UserPhoto[]
   subscription   Subscription?
@@ -215,6 +222,23 @@ model Subscription {
   @@map("subscription")
 }
 
+// ─── User Preferences (discovery filters) ──────────────────────────
+
+model UserPreferences {
+  id            String   @id @default(cuid())
+  userId        String   @unique @map("user_id")
+  ageMin        Int?     @map("age_min")
+  ageMax        Int?     @map("age_max")
+  maxDistanceKm Int?     @map("max_distance_km")
+  genderPref    String?  @map("gender_pref") @db.VarChar(20) // male | female | all
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
 // ─── User Matching Criteria (from persona chat OUT-02) ─────────────
 
 model UserMatchingCriteria {
@@ -252,6 +276,7 @@ model Like {
   fromUserId String   @map("from_user_id")
   toUserId   String   @map("to_user_id")
   action     String   @db.VarChar(10) // like | pass
+  priority   Boolean  @default(false) // priority-likes ranking boost
   createdAt  DateTime @default(now()) @map("created_at")
 
   fromUser User @relation("LikesGiven", fields: [fromUserId], references: [id], onDelete: Cascade)

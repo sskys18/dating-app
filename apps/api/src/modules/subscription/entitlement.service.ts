@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import type { PrismaService } from '../prisma/prisma.service';
-import type { RedisService } from '../redis/redis.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 import type { Entitlement } from '@dating-app/types';
 
 const CACHE_TTL = 300; // 5 minutes

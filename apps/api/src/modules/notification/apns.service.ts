@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { OnModuleDestroy } from '@nestjs/common';
-import type { ConfigService } from '@nestjs/config';
+import { ConfigService } from '@nestjs/config';
 import * as apn from '@parse/node-apn';
 
 @Injectable()

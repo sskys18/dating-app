@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { apiFetch } from '@/lib/api';
+import { track } from '@/lib/analytics';
 import type { QuizItem } from '@dating-app/types';
 
 export default function QuizPage() {
@@ -45,6 +46,8 @@ export default function QuizPage() {
         } catch {
           // No session progress, start fresh
         }
+
+        track('quiz_start', { total: data.items.length });
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to load quiz');
       } finally {
@@ -103,10 +106,11 @@ export default function QuizPage() {
     setError(null);
 
     try {
-      await apiFetch('/api/quiz/submit', {
+      await apiFetch(`/api/quiz/submit?locale=${locale}`, {
         method: 'POST',
         body: JSON.stringify({ answers: finalAnswers }),
       });
+      track('quiz_complete', { total: finalAnswers.length });
       router.push(`/${locale}/result`);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to submit quiz');

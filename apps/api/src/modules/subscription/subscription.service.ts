@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { PrismaService } from '../prisma/prisma.service';
-import type { AppStoreService } from './app-store.service';
-import type { EntitlementService } from './entitlement.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { AppStoreService } from './app-store.service';
+import { EntitlementService } from './entitlement.service';
 import { NotificationTypeV2 } from '@apple/app-store-server-library';
 import type { JWSTransactionDecodedPayload } from '@apple/app-store-server-library';
 

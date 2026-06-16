@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import type { BlockService } from './block.service';
+import { BlockService } from './block.service';
 import type { BlockUserDto } from './dto/block-user.dto';
 
 @Controller('blocks')

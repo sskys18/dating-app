@@ -1,63 +1,97 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { useParams } from 'next/navigation';
+import { apiFetch } from '@/lib/api';
+import { track } from '@/lib/analytics';
+import { useFlag } from '@/lib/flags';
 
-const FEATURES = [
-  { en: 'Daily profiles', ko: '일일 프로필' },
-  { en: 'Daily likes', ko: '일일 좋아요' },
-  { en: 'Rewind', ko: '되돌리기' },
-  { en: 'See who likes you', ko: '누가 좋아했는지 보기' },
-  { en: 'Incognito mode', ko: '시크릿 모드' },
-  { en: 'Priority likes', ko: '우선 좋아요' },
-];
+interface HandoffResponse {
+  token: string;
+  deepLink: string;
+  expiresAt: string;
+}
 
-const FEATURES_KO_VALUES: Record<string, string> = {
-  Unlimited: '무제한',
-  '3/day': '3개/일',
-  '5/day': '5개/일',
-};
+// Feature rows, in display order. Labels come from paywall.features.* per locale.
+const FEATURE_KEYS = [
+  'dailyProfiles',
+  'dailyLikes',
+  'rewind',
+  'likesYou',
+  'incognito',
+  'priorityLikes',
+] as const;
 
-const PLANS = [
+// Per-plan cell values, aligned to FEATURE_KEYS order.
+//   number     → "{n}/day"      'unlimited' → localized "Unlimited"
+//   true       → "✓"            false       → "—"
+type Cell = number | 'unlimited' | boolean;
+
+const PLANS: {
+  key: 'free' | 'plus' | 'premium';
+  price: string;
+  recommended?: boolean;
+  values: Cell[];
+}[] = [
+  { key: 'free', price: '$0', values: [3, 5, false, false, false, false] },
   {
-    key: 'free' as const,
-    price: '$0',
-    features: ['3/day', '5/day', '—', '—', '—', '—'],
-  },
-  {
-    key: 'plus' as const,
+    key: 'plus',
     price: '$9.99',
     recommended: true,
-    features: ['Unlimited', 'Unlimited', '✓', '—', '—', '—'],
+    values: ['unlimited', 'unlimited', true, false, false, false],
   },
   {
-    key: 'premium' as const,
+    key: 'premium',
     price: '$19.99',
-    features: ['Unlimited', 'Unlimited', '✓', '✓', '✓', '✓'],
+    values: ['unlimited', 'unlimited', true, true, true, true],
   },
 ];
 
 export default function PaywallPage() {
   const t = useTranslations('paywall');
-  const params = useParams();
-  const locale = (params.locale as string) || 'en-US';
-  const isKo = locale === 'ko-KR';
 
-  function featureValue(value: string): string {
-    if (!isKo) return value;
-    return FEATURES_KO_VALUES[value] ?? value;
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // EXP-01: paywall presentation variant.
+  const paywallVariant = useFlag('EXP-01');
+
+  useEffect(() => {
+    track('paywall_view', { 'EXP-01': paywallVariant });
+  }, [paywallVariant]);
+
+  function renderCell(v: Cell): string {
+    if (v === 'unlimited') return t('values.unlimited');
+    if (typeof v === 'number') return t('values.perDay', { count: v });
+    return v ? '✓' : '—';
+  }
+
+  // WEB-06: request a one-time handoff token for the current anonymous session,
+  // then deep-link into the app where auth + the actual subscription happen.
+  async function handleGetApp() {
+    setLoading(true);
+    setError(null);
+    track('purchase_start', { 'EXP-01': paywallVariant });
+    try {
+      const { deepLink } = await apiFetch<HandoffResponse>('/api/handoff/request', {
+        method: 'POST',
+      });
+      track('handoff_request');
+      window.location.href = deepLink;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Something went wrong. Please try again.');
+      setLoading(false);
+    }
   }
 
   return (
     <main className="flex min-h-screen flex-col items-center p-6 pt-12">
       <div className="w-full max-w-lg">
-        {/* Header */}
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold">{t('title')}</h1>
         </div>
 
-        {/* Plan cards */}
-        <div className="mb-8 space-y-4">
+        <div className={paywallVariant === 'compact' ? 'mb-8 space-y-2' : 'mb-8 space-y-4'}>
           {PLANS.map((plan) => (
             <div
               key={plan.key}
@@ -65,66 +99,59 @@ export default function PaywallPage() {
                 plan.recommended ? 'ring-2 ring-rose-500' : ''
               }`}
             >
-              {/* Recommended badge */}
               {plan.recommended && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-rose-500 px-4 py-1 text-xs font-semibold text-white">
-                  {isKo ? '추천' : 'Recommended'}
+                  {t('recommended')}
                 </div>
               )}
 
-              {/* Plan name + price */}
               <div className="mb-4 text-center">
-                <h2 className="text-xl font-bold text-gray-900">
-                  {t(plan.key)}
-                </h2>
+                <h2 className="text-xl font-bold text-gray-900">{t(plan.key)}</h2>
                 <div className="mt-1 text-2xl font-bold text-rose-500">
                   {plan.price}
-                  <span className="text-sm font-normal text-gray-400">
-                    {t('monthly')}
-                  </span>
+                  <span className="text-sm font-normal text-gray-400">{t('monthly')}</span>
                 </div>
               </div>
 
-              {/* Feature list */}
               <ul className="mb-6 space-y-3">
-                {FEATURES.map((feature, i) => {
-                  const value = plan.features[i];
-                  const isAvailable = value !== '—';
+                {FEATURE_KEYS.map((featureKey, i) => {
+                  const cell = plan.values[i];
+                  const available = cell !== false;
                   return (
-                    <li key={i} className="flex items-center justify-between text-sm">
-                      <span className={isAvailable ? 'text-gray-700' : 'text-gray-400'}>
-                        {isKo ? feature.ko : feature.en}
+                    <li key={featureKey} className="flex items-center justify-between text-sm">
+                      <span className={available ? 'text-gray-700' : 'text-gray-400'}>
+                        {t(`features.${featureKey}`)}
                       </span>
                       <span
-                        className={`font-medium ${
-                          isAvailable ? 'text-gray-900' : 'text-gray-300'
-                        }`}
+                        className={`font-medium ${available ? 'text-gray-900' : 'text-gray-300'}`}
                       >
-                        {featureValue(value)}
+                        {renderCell(cell)}
                       </span>
                     </li>
                   );
                 })}
               </ul>
 
-              {/* CTA button for paid plans */}
               {plan.key !== 'free' && (
                 <div className="text-center">
                   <button
-                    onClick={() => alert(isKo ? '곧 출시됩니다!' : 'Coming soon!')}
-                    className={`inline-block w-full rounded-full px-8 py-3 text-base font-semibold transition ${
+                    onClick={handleGetApp}
+                    disabled={loading}
+                    className={`inline-block w-full rounded-full px-8 py-3 text-base font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
                       plan.recommended
                         ? 'bg-rose-500 text-white hover:bg-rose-600'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
-                    {t('getApp')}
+                    {loading ? '…' : t('getApp')}
                   </button>
                 </div>
               )}
             </div>
           ))}
         </div>
+
+        {error && <p className="mb-4 text-center text-sm text-rose-600">{error}</p>}
       </div>
     </main>
   );

@@ -9,9 +9,9 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
-import type { ConfigService } from '@nestjs/config';
+import { ConfigService } from '@nestjs/config';
 import type { Request, Response } from 'express';
-import type { AuthService } from './auth.service';
+import { AuthService } from './auth.service';
 
 @ApiTags('auth')
 @Controller('auth')

@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { apiFetch } from '@/lib/api';
+import { track } from '@/lib/analytics';
 
 interface ProfileDraft {
   bioVariants: string[];
@@ -59,6 +60,7 @@ export default function SummaryPage() {
         }
 
         setData(session);
+        track('summary_view');
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to load results');
       } finally {

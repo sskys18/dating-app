@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import type { JwtService } from '@nestjs/jwt';
+import { JwtService } from '@nestjs/jwt';
 import {
   WebSocketGateway,
   WebSocketServer,
@@ -9,11 +9,11 @@ import {
 } from '@nestjs/websockets';
 import type { OnGatewayConnection, OnGatewayDisconnect } from '@nestjs/websockets';
 import type { Server, Socket } from 'socket.io';
-import type { DatingChatService } from './dating-chat.service';
-import type { RedisService } from '../redis/redis.service';
-import type { BlockService } from '../block/block.service';
-import type { NotificationService } from '../notification/notification.service';
-import type { PrismaService } from '../prisma/prisma.service';
+import { DatingChatService } from './dating-chat.service';
+import { RedisService } from '../redis/redis.service';
+import { BlockService } from '../block/block.service';
+import { NotificationService } from '../notification/notification.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -45,26 +45,32 @@ export class RealtimeGateway
         return;
       }
 
+      // Access tokens are signed with the user id in `sub` (see AuthService.signTokens).
       const payload = this.jwtService.verify(token);
-      socket.userId = payload.id;
+      const userId = payload.sub as string;
+      if (!userId || payload.type === 'refresh') {
+        socket.disconnect();
+        return;
+      }
+      socket.userId = userId;
 
       // Store socket mapping in Redis
       await this.redis.set(
-        `ws:user:${payload.id}`,
+        `ws:user:${userId}`,
         socket.id,
         'EX',
         86400,
       );
 
       // Join all active chat rooms
-      const matches = await this.chatService.getMatchList(payload.id);
+      const matches = await this.chatService.getMatchList(userId);
       for (const match of matches) {
         if (match.chatRoomId) {
           socket.join(match.chatRoomId);
         }
       }
 
-      this.logger.log(`Client connected: ${payload.id}`);
+      this.logger.log(`Client connected: ${userId}`);
     } catch {
       socket.disconnect();
     }
@@ -92,10 +98,31 @@ export class RealtimeGateway
       if (!wasSet) return; // Already processed
     }
 
-    // Block check: find the other user in the chat room
     try {
-      // Verify membership (block check is handled at the HTTP layer on like/match)
+      // Verify membership and resolve the other participant.
       await this.chatService.getChatRoom(payload.chatRoomId, userId);
+
+      const chatRoom = await this.prisma.chatRoom.findUnique({
+        where: { id: payload.chatRoomId },
+        include: { match: true },
+      });
+      if (!chatRoom) return;
+      const recipientId =
+        chatRoom.match.userAId === userId
+          ? chatRoom.match.userBId
+          : chatRoom.match.userAId;
+
+      // REQ-RTC-04: a block in either direction immediately stops messaging.
+      // Because a recipient only ever receives a message via a send, enforcing
+      // here closes both the send and the receive path — no live-socket eviction
+      // needed, and a block also unmatches so the room won't be rejoined.
+      if (await this.blockService.isBlocked(userId, recipientId)) {
+        socket.emit('message_rejected', {
+          tempId: payload.tempId,
+          reason: 'blocked',
+        });
+        return;
+      }
 
       const message = await this.chatService.createMessage(
         payload.chatRoomId,
@@ -115,30 +142,20 @@ export class RealtimeGateway
       });
 
       // If recipient is offline, send push notification
-      const chatRoom = await this.prisma.chatRoom.findUnique({
-        where: { id: payload.chatRoomId },
-        include: { match: true },
-      });
-      if (chatRoom) {
-        const recipientId =
-          chatRoom.match.userAId === userId
-            ? chatRoom.match.userBId
-            : chatRoom.match.userAId;
-        const recipientSocketId = await this.redis.get(`ws:user:${recipientId}`);
-        if (!recipientSocketId) {
-          const sender = await this.prisma.user.findUnique({
-            where: { id: userId },
-            select: { nickname: true },
-          });
-          this.notificationService
-            .sendNewMessage(
-              recipientId,
-              sender?.nickname ?? 'Someone',
-              payload.chatRoomId,
-              payload.content,
-            )
-            .catch(() => {});
-        }
+      const recipientSocketId = await this.redis.get(`ws:user:${recipientId}`);
+      if (!recipientSocketId) {
+        const sender = await this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { nickname: true },
+        });
+        this.notificationService
+          .sendNewMessage(
+            recipientId,
+            sender?.nickname ?? 'Someone',
+            payload.chatRoomId,
+            payload.content,
+          )
+          .catch(() => {});
       }
     } catch (err) {
       this.logger.error(`send_message error: ${err}`);

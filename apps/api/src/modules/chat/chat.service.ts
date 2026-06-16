@@ -2,10 +2,12 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
-import type { PrismaService } from '../prisma/prisma.service';
-import type { RedisService } from '../redis/redis.service';
-import type { LlmService } from '../llm/llm.service';
+import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
+import { LlmService } from '../llm/llm.service';
 import {
   ChatOutputsSchema,
   SendMessageRequestSchema,
@@ -15,14 +17,25 @@ import type { ChatCompletionMessageParam } from 'openai/resources/chat/completio
 
 const MIN_TURNS_FOR_COMPLETION = 6;
 const RATE_LIMIT_SECONDS = 3;
+// NFR-05 / §13: cap runaway LLM cost per persona-chat session.
+const DEFAULT_SESSION_TOKEN_BUDGET = 20000;
 
 @Injectable()
 export class ChatService {
+  private readonly logger = new Logger(ChatService.name);
+  private readonly sessionTokenBudget: number;
+
   constructor(
     private prisma: PrismaService,
     private redis: RedisService,
     private llm: LlmService,
-  ) {}
+    private config: ConfigService,
+  ) {
+    this.sessionTokenBudget = this.config.get<number>(
+      'LLM_SESSION_TOKEN_BUDGET',
+      DEFAULT_SESSION_TOKEN_BUDGET,
+    );
+  }
 
   async startChat(sessionId: string) {
     // Verify session exists and quiz is completed
@@ -126,6 +139,25 @@ export class ChatService {
     // Append user message
     messages.push({ role: 'user', content, timestamp: now });
 
+    // NFR-05 cost cap — evaluated BEFORE the completion/LLM paths so it can
+    // never be bypassed on the expensive final turns. If cumulative spend
+    // already exceeds the per-session token budget, stop spending: finalize
+    // from what exists instead of issuing another normal turn. If we have
+    // enough turns to extract meaningful structured outputs, do the one-time
+    // extraction (force-finalize skips the extra wrap-up call); otherwise
+    // complete with no further LLM calls at all.
+    if (chatSession.totalTokens >= this.sessionTokenBudget) {
+      this.logger.warn(
+        `Session ${chatSession.id} hit token budget ` +
+          `(${chatSession.totalTokens}/${this.sessionTokenBudget}) at turn ` +
+          `${newTurnCount}; force-finalizing.`,
+      );
+      if (newTurnCount >= MIN_TURNS_FOR_COMPLETION) {
+        return this.completeChat(chatSession, messages, newTurnCount, true);
+      }
+      return this.finalizeWithoutLlm(chatSession, messages, newTurnCount);
+    }
+
     // Check if we should extract structured outputs and complete
     const shouldComplete =
       (newTurnCount >= MIN_TURNS_FOR_COMPLETION && newTurnCount >= chatSession.maxTurns - 1) ||
@@ -177,30 +209,46 @@ export class ChatService {
     chatSession: { id: string; systemPrompt: string | null; totalTokens: number; maxTurns: number },
     messages: ChatMessage[],
     turnCount: number,
+    forceFinalize = false,
   ) {
-    // Get a final conversational response first
-    const conversationMessages = this.buildLlmMessages(
-      chatSession.systemPrompt!,
-      messages,
-    );
+    // When force-finalizing on the cost cap, skip the extra conversational
+    // wrap-up model call (pure spend) and append a static closing message.
+    // The single extraction call below is the actual deliverable (OUT-01..03)
+    // and keeps NFR-04 schema validation intact.
+    let finalResponseTokens = 0;
+    if (forceFinalize) {
+      messages.push({
+        role: 'assistant',
+        content:
+          "Thanks so much for sharing — I've got everything I need to put together your profile draft. It's ready for you now!",
+        timestamp: new Date().toISOString(),
+      });
+    } else {
+      // Get a final conversational response first
+      const conversationMessages = this.buildLlmMessages(
+        chatSession.systemPrompt!,
+        messages,
+      );
 
-    // Add instruction for the final turn
-    conversationMessages.push({
-      role: 'system',
-      content:
-        'This is the final turn. Warmly wrap up the conversation — thank them for sharing, give a brief positive reflection on what you learned about them, and let them know their profile draft is ready.',
-    });
+      // Add instruction for the final turn
+      conversationMessages.push({
+        role: 'system',
+        content:
+          'This is the final turn. Warmly wrap up the conversation — thank them for sharing, give a brief positive reflection on what you learned about them, and let them know their profile draft is ready.',
+      });
 
-    const finalResponse = await this.llm.chatCompletion({
-      messages: conversationMessages,
-    });
+      const finalResponse = await this.llm.chatCompletion({
+        messages: conversationMessages,
+      });
+      finalResponseTokens = finalResponse.usage.totalTokens;
 
-    const finalTimestamp = new Date().toISOString();
-    messages.push({
-      role: 'assistant',
-      content: finalResponse.content,
-      timestamp: finalTimestamp,
-    });
+      const finalTimestamp = new Date().toISOString();
+      messages.push({
+        role: 'assistant',
+        content: finalResponse.content,
+        timestamp: finalTimestamp,
+      });
+    }
 
     // Extract structured outputs from the full conversation
     const extractionMessages: ChatCompletionMessageParam[] = [
@@ -252,8 +300,38 @@ Guidelines:
         messageStarters: extraction.data.messageStarters,
         totalTokens:
           chatSession.totalTokens +
-          finalResponse.usage.totalTokens +
+          finalResponseTokens +
           extraction.usage.totalTokens,
+      },
+    });
+
+    return this.formatSession(updated);
+  }
+
+  /**
+   * Force-finalize a session that hit the token budget too early to extract
+   * meaningful structured outputs. Marks the chat complete with NO further
+   * LLM calls — a hard stop on runaway cost (NFR-05). Outputs stay null.
+   */
+  private async finalizeWithoutLlm(
+    chatSession: { id: string },
+    messages: ChatMessage[],
+    turnCount: number,
+  ) {
+    messages.push({
+      role: 'assistant',
+      content:
+        "Thanks for chatting! We've reached the limit for this session, so I'm wrapping things up here.",
+      timestamp: new Date().toISOString(),
+    });
+
+    const updated = await this.prisma.chatSession.update({
+      where: { id: chatSession.id },
+      data: {
+        messages,
+        turnCount,
+        status: 'completed',
+        completedAt: new Date(),
       },
     });
 

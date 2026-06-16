@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import type { PrismaService } from '../prisma/prisma.service';
-import type { PhotoService } from '../photo/photo.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { PhotoService } from '../photo/photo.service';
 import type { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Injectable()

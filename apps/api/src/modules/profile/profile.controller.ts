@@ -9,7 +9,7 @@ import {
 import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import type { ProfileService } from './profile.service';
+import { ProfileService } from './profile.service';
 import type { UpdateProfileDto } from './dto/update-profile.dto';
 
 @ApiTags('profile')

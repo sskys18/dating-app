@@ -11,6 +11,7 @@ struct ChatView: View {
     @EnvironmentObject var appState: AppState
 
     @State private var showBlockConfirm = false
+    @State private var showReportSheet = false
     @Environment(\.dismiss) private var dismiss
 
     init(chatRoomId: String, otherUser: MatchUser) {
@@ -87,6 +88,11 @@ struct ChatView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
+                    Button {
+                        showReportSheet = true
+                    } label: {
+                        Label("Report User", systemImage: "flag")
+                    }
                     Button(role: .destructive) {
                         showBlockConfirm = true
                     } label: {
@@ -107,6 +113,13 @@ struct ChatView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("They won't be able to contact you, and you won't see them again.")
+        }
+        .sheet(isPresented: $showReportSheet) {
+            ReportSheet(
+                reportedId: otherUser.id,
+                reportedName: otherUser.nickname,
+                chatRoomId: chatRoomId
+            )
         }
         .task {
             await viewModel.loadInitialData()
